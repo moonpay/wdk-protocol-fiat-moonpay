@@ -1,18 +1,56 @@
 name: Publish
+
 on:
   push:
     tags:
-      - v*
+      - 'v*'
+
 permissions:
   id-token: write
-  contents: write
+  contents: write # Create the GitHub release and attach the npm tarball.
+
+concurrency:
+  group: npm-publish-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   publish:
     runs-on: ubuntu-latest
-    environment:
-      name: release
+    environment: release
     name: Publish
     steps:
-      - uses: holepunchto/actions/node-base@v1
-      - uses: holepunchto/actions/publish@v1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - name: Check release tag matches package version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: node -e 'require("node:assert/strict").equal(process.env.RELEASE_TAG, "v" + require("./package.json").version)'
+      - run: npm install --global npm@11.21.1
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build:types
+      - name: Pack release artifact
+        id: pack
+        run: |
+          package_file=$(npm pack --ignore-scripts --quiet --pack-destination "$RUNNER_TEMP")
+          echo "file=$RUNNER_TEMP/$package_file" >> "$GITHUB_OUTPUT"
+      - name: Publish with npm OIDC
+        env:
+          PACKAGE_FILE: ${{ steps.pack.outputs.file }}
+        run: npm publish "$PACKAGE_FILE" --ignore-scripts --access public --tag latest
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          PACKAGE_FILE: ${{ steps.pack.outputs.file }}
+        run: >-
+          gh release create "$RELEASE_TAG" "$PACKAGE_FILE"
+          --verify-tag --title "$RELEASE_TAG" --generate-notes --prerelease=false
 

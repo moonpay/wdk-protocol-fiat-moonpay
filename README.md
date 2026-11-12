@@ -1,4 +1,4 @@
-# @tetherto/wdk-protocol-fiat-moonpay
+# @moonpay/wdk-protocol-fiat-moonpay
 
 Note: This package is in beta. Please test in a dev setup first.
 
@@ -21,7 +21,7 @@ This is part of WDK (Wallet Development Kit). WDK helps you build safe, non‑cu
 ## ⬇️ Installation
 
 ```bash
-npm install @tetherto/wdk-protocol-fiat-moonpay
+npm install @moonpay/wdk-protocol-fiat-moonpay
 ```
 
 ## 🚀 Quick Start
@@ -29,7 +29,7 @@ npm install @tetherto/wdk-protocol-fiat-moonpay
 ### Basic Usage
 
 ```javascript
-import MoonPayProtocol from '@tetherto/wdk-protocol-fiat-moonpay'
+import MoonPayProtocol from '@moonpay/wdk-protocol-fiat-moonpay'
 
 const signUrl = async (urlForSignature) => {
   const response = await fetch('https://your-backend.example.com/moonpay/sign-url', {

@@ -1,5 +1,5 @@
 {
-  "name": "@tetherto/wdk-protocol-fiat-moonpay",
+  "name": "@moonpay/wdk-protocol-fiat-moonpay",
   "version": "1.0.0-beta.6",
   "description": "MoonPay on-ramp and off-ramp module for WDK (Wallet Development Kit) by Tether, with widget URLs and quotes.",
   "homepage": "https://docs.wdk.tether.io/sdk/fiat-modules/fiat-moonpay/",
@@ -11,7 +11,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tetherto/wdk-protocol-fiat-moonpay.git"
+    "url": "git+https://github.com/moonpay/wdk-protocol-fiat-moonpay.git"
   },
   "license": "Apache-2.0",
   "author": "Tether",
