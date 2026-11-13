@@ -13,6 +13,6 @@ jobs:
       name: release
     name: Publish
     steps:
-      - uses: holepunchto/actions/node-base@v1
-      - uses: holepunchto/actions/publish@v1
+      - uses: holepunchto/actions/node-base@6536ea03d3b33366c6a9d1dd9f1e0a328b1cfe8d # v1
+      - uses: holepunchto/actions/publish@6536ea03d3b33366c6a9d1dd9f1e0a328b1cfe8d # v1
 
