@@ -34,10 +34,7 @@ export default class MoonPayProtocol extends FiatProtocol {
     /** @private */
     private _cacheThreshold;
     /** @private */
-    private _getAssetDetails(cryptoAsset: string, fiatCurrency: string): Promise<{
-        cryptoInfo: MoonPayCryptoCurrencyDetails;
-        fiatInfo: MoonPayFiatCurrencyDetails;
-    }>;
+    private _getAssetDetails;
     /**
      * Generates a widget URL for a user to purchase a crypto asset with fiat currency.
      * @override
