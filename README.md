@@ -56,38 +56,56 @@ const moonpay = new MoonPayProtocol(undefined, {
   environment: 'sandbox'
 })
 
-// Get a buy quote
+// Get a buy quote for $100.00
 const buyQuote = await moonpay.quoteBuy({
   fiatCurrency: 'usd',
   cryptoAsset: 'eth',
-  fiatAmount: 100
+  fiatAmount: 10_000n // $100.00, in cents
 })
 
-// Generate a buy widget URL
+// buyQuote.cryptoAmount is a bigint in wei; buyQuote.fiatAmount and buyQuote.fee are bigints in cents
+console.log('ETH for $100.00 (wei):', buyQuote.cryptoAmount)
+
+// Generate a buy widget URL for $100.00
 const { buyUrl } = await moonpay.buy({
   fiatCurrency: 'usd',
   cryptoAsset: 'eth',
-  fiatAmount: 100,
+  fiatAmount: 10_000n, // $100.00, in cents
   recipient: '0xabc'
 })
 
 console.log('Buy URL:', buyUrl)
 
-// Get a sell quote
+// Get a sell quote for 0.05 ETH
 const sellQuote = await moonpay.quoteSell({
   fiatCurrency: 'usd',
   cryptoAsset: 'eth',
-  cryptoAmount: 100
+  cryptoAmount: 50_000_000_000_000_000n // 0.05 ETH, in wei (ETH has 18 decimals)
 })
 
-// Generate a sell widget URL
+console.log('USD for 0.05 ETH (cents):', sellQuote.fiatAmount)
+
+// Generate a sell widget URL for 0.05 ETH
 const { sellUrl } = await moonpay.sell({
   fiatCurrency: 'usd',
   cryptoAsset: 'eth',
-  cryptoAmount: 100,
+  cryptoAmount: 50_000_000_000_000_000n, // 0.05 ETH, in wei
   refundAddress: '0xabc'
 })
 ```
+
+### Amounts
+
+Every amount is an integer in the currency's smallest unit:
+
+- `fiatAmount` is in the fiat currency's smallest unit, such as cents for USD. `10_000n` is $100.00, and `100n` is $1.00.
+- `cryptoAmount` is in the crypto asset's base unit, such as wei for ETH. ETH has 18 decimals, so `50_000_000_000_000_000n` is 0.05 ETH.
+
+Both accept a `bigint` or a `number`. Prefer `bigint`: wei amounts are usually above `Number.MAX_SAFE_INTEGER` (about 9 × 10^15), where a `number` can no longer hold every integer exactly. `getSupportedFiatCurrencies()` and `getSupportedCryptoAssets()` return each currency's `decimals`, which you need to convert a display amount into the smallest unit.
+
+The module converts the amount to whole units for MoonPay and rounds it down to the number of decimal places MoonPay accepts for that currency (its `precision`). Anything below that is dropped. For example, a `number` such as `100.99` (cents) is sent as $1.00.
+
+Quotes use the same units. `cryptoAmount`, `fiatAmount` and `fee` are `bigint`s, and `fee` is always in the fiat currency's smallest unit. `rate` is a string in whole units: `"3000.5"` means 1 ETH costs 3000.50 USD. `metadata` is MoonPay's response as is, so its amounts are plain numbers in whole units (`baseCurrencyAmount: 100` for $100).
 
 ## 📚 API Reference
 
@@ -128,10 +146,12 @@ Generates a widget URL to purchase crypto.
 Options:
 - `fiatCurrency` (string): The fiat currency code (e.g., 'usd').
 - `cryptoAsset` (string): The crypto asset code (e.g., 'eth').
-- `fiatAmount` (number, optional): The amount in fiat currency.
-- `cryptoAmount` (number, optional): The amount in crypto asset.
+- `fiatAmount` (bigint | number, optional): The fiat amount to spend, in the currency's smallest unit (e.g., `10_000n` for $100.00).
+- `cryptoAmount` (bigint | number, optional): The crypto amount to buy, in the asset's base unit (e.g., `10n ** 18n` for 1 ETH).
 - `recipient` (string, optional): The wallet address to receive funds. If not provided, uses the account address.
 - `config` (object, optional): Additional MoonPay widget parameters.
+
+Pass exactly one of `fiatAmount` and `cryptoAmount`.
 
 #### `sell(options)`
 Generates a widget URL to sell crypto.
@@ -139,10 +159,12 @@ Generates a widget URL to sell crypto.
 Options:
 - `fiatCurrency` (string): The fiat currency code (e.g., 'usd').
 - `cryptoAsset` (string): The crypto asset code (e.g., 'eth').
-- `fiatAmount` (number, optional): The amount in fiat currency.
-- `cryptoAmount` (number, optional): The amount in crypto asset.
+- `fiatAmount` (bigint | number, optional): The fiat amount to receive, in the currency's smallest unit (e.g., `10_000n` for $100.00).
+- `cryptoAmount` (bigint | number, optional): The crypto amount to sell, in the asset's base unit (e.g., `10n ** 18n` for 1 ETH).
 - `refundAddress` (string, optional): The wallet address for refunds. If not provided, uses the account address.
 - `config` (object, optional): Additional MoonPay widget parameters.
+
+Pass exactly one of `fiatAmount` and `cryptoAmount`.
 
 #### `quoteBuy(options)`
 Gets a quote for a crypto asset purchase.
@@ -150,9 +172,11 @@ Gets a quote for a crypto asset purchase.
 Options:
 - `fiatCurrency` (string): The fiat currency code.
 - `cryptoAsset` (string): The crypto asset code.
-- `fiatAmount` (number, optional): The amount in fiat currency.
-- `cryptoAmount` (number, optional): The amount in crypto asset.
+- `fiatAmount` (bigint | number, optional): The fiat amount to spend, in the currency's smallest unit (e.g., `10_000n` for $100.00).
+- `cryptoAmount` (bigint | number, optional): The crypto amount to buy, in the asset's base unit (e.g., `10n ** 18n` for 1 ETH).
 - `config` (object, optional): Additional MoonPay quote parameters.
+
+Pass exactly one of `fiatAmount` and `cryptoAmount`. The quote's amounts use the same units; see [Amounts](#amounts).
 
 #### `quoteSell(options)`
 Gets a quote for a crypto asset sale.
@@ -160,8 +184,10 @@ Gets a quote for a crypto asset sale.
 Options:
 - `fiatCurrency` (string): The fiat currency code.
 - `cryptoAsset` (string): The crypto asset code.
-- `cryptoAmount` (number): The amount in crypto asset (Required).
+- `cryptoAmount` (bigint | number): The crypto amount to sell, in the asset's base unit (e.g., `10n ** 18n` for 1 ETH). Required.
 - `config` (object, optional): Additional MoonPay quote parameters.
+
+The quote's amounts use the same units; see [Amounts](#amounts).
 
 #### `getTransactionDetail(txId, direction)`
 Retrieves the details of a transaction.
