@@ -38,28 +38,36 @@ export default class MoonPayProtocol extends FiatProtocol {
     /**
      * Generates a widget URL for a user to purchase a crypto asset with fiat currency.
      * @override
-     * @param {MoonPayBuyOptions} options - The options for the purchase.
+     * @param {MoonPayBuyOptions} options - The options for the purchase. Pass either 'fiatAmount', in the fiat
+     *   currency's smallest unit (e.g., 10_000n for 100 USD), or 'cryptoAmount', in the crypto asset's base unit
+     *   (e.g., wei for ETH).
      * @returns {Promise<BuyResult>} The URL for the user to complete the purchase.
      */
     override buy(options: MoonPayBuyOptions): Promise<BuyResult>;
     /**
      * Gets a quote for a crypto asset purchase.
      * @override
-     * @param {MoonPayQuoteBuyOptions} options - The options for the quote.
-     * @returns {Promise<MoonPayBuyQuote>} A quote for the transaction.
+     * @param {MoonPayQuoteBuyOptions} options - The options for the quote. Pass either 'fiatAmount', in the fiat
+     *   currency's smallest unit (e.g., 10_000n for 100 USD), or 'cryptoAmount', in the crypto asset's base unit
+     *   (e.g., wei for ETH).
+     * @returns {Promise<MoonPayBuyQuote>} A quote for the transaction, with its amounts and fee in the same units.
      */
     override quoteBuy(options: MoonPayQuoteBuyOptions): Promise<MoonPayBuyQuote>;
     /**
      * Gets a quote for a crypto asset sale.
      * @override
-     * @param {MoonPayQuoteSellOptions} options - The options for the quote.
-     * @returns {Promise<MoonPaySellQuote>} A quote for the transaction.
+     * @param {MoonPayQuoteSellOptions} options - The options for the quote. 'cryptoAmount' is in the crypto asset's
+     *   base unit (e.g., wei for ETH).
+     * @returns {Promise<MoonPaySellQuote>} A quote for the transaction, with its crypto amount in the asset's base unit
+     *   and its fiat amount and fee in the fiat currency's smallest unit (e.g., cents).
      */
     override quoteSell(options: MoonPayQuoteSellOptions): Promise<MoonPaySellQuote>;
     /**
      * Generates a widget URL for a user to sell a crypto asset for fiat currency.
      * @override
-     * @param {MoonPaySellOptions} options - The options for the sale.
+     * @param {MoonPaySellOptions} options - The options for the sale. Pass either 'cryptoAmount', in the crypto
+     *   asset's base unit (e.g., wei for ETH), or 'fiatAmount', in the fiat currency's smallest unit (e.g., 10_000n
+     *   for 100 USD).
      * @returns {Promise<SellResult>} The URL for the user to complete the sale.
      */
     override sell(options: MoonPaySellOptions): Promise<SellResult>;
@@ -768,6 +776,10 @@ export type MoonPayCountryDetail = {
      */
     supportedDocuments: string[];
 };
+/**
+ * The buy quote as returned by MoonPay. Its amounts are in whole units (e.g., 100 for 100 USD),
+ * unlike the amounts of {@link MoonPayBuyQuote}, which are in the smallest unit.
+ */
 export type MoonPayBuyQuoteMetadata = {
     /**
      * - ID of your business account
@@ -826,6 +838,10 @@ export type MoonPayBuyQuoteMetadata = {
      */
     expiresAt: string | null;
 };
+/**
+ * The sell quote as returned by MoonPay. Its amounts are in whole units (e.g., 100 for 100 USD),
+ * unlike the amounts of {@link MoonPaySellQuote}, which are in the smallest unit.
+ */
 export type MoonPaySellQuoteMetadata = {
     /**
      * - Fiat currency the customer wants to get.
