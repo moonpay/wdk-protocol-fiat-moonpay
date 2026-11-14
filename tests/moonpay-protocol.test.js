@@ -1230,4 +1230,70 @@ describe('MoonPayProtocol', () => {
       expect(global.fetch).not.toHaveBeenCalled()
     })
   })
+
+  describe('amount units', () => {
+    const MOCK_USDC = { type: 'crypto', code: 'usdc', name: 'USD Coin', decimals: 6, precision: 2, metadata: { networkCode: 'ethereum' } }
+
+    const mockQuote = (quote) => {
+      global.fetch = jest.fn()
+        .mockResolvedValueOnce({ ok: true, json: jest.fn().mockResolvedValue([...MOCK_CURRENCIES, MOCK_USDC]) })
+        .mockResolvedValueOnce({ ok: true, json: jest.fn().mockResolvedValue(quote) })
+    }
+
+    // buy and sell put the amount in the widget URL, the quote methods in the quote request.
+    const requestedParams = async (method, options) => {
+      const result = await moonpay[method]({ fiatCurrency: 'usd', ...options })
+      const url = result.buyUrl ?? result.sellUrl ?? global.fetch.mock.calls[1][0]
+
+      return Object.fromEntries(new URL(url).searchParams)
+    }
+
+    beforeEach(() => {
+      moonpay = new MoonpayProtocol(undefined, { apiKey: MOCK_API_KEY, environment: 'sandbox' })
+      mockQuote({ baseCurrencyAmount: 1, quoteCurrencyAmount: 1, feeAmount: 0, extraFeeAmount: 0, networkFeeAmount: 0, quoteCurrencyPrice: 1, baseCurrencyPrice: 1 })
+    })
+
+    test.each([
+      ['buy', 'baseCurrencyAmount'],
+      ['quoteBuy', 'baseCurrencyAmount'],
+      ['sell', 'quoteCurrencyAmount']
+    ])('%s should read fiatAmount 10_000n as 100.00 USD', async (method, param) => {
+      const params = await requestedParams(method, { cryptoAsset: 'eth', fiatAmount: 10_000n })
+
+      expect(params[param]).toBe('100.00')
+    })
+
+    test.each([
+      [10_000, '100.00'],
+      [100, '1.00']
+    ])('should read a number fiatAmount of %p as %s USD', async (fiatAmount, expected) => {
+      const params = await requestedParams('buy', { cryptoAsset: 'eth', fiatAmount })
+
+      expect(params.baseCurrencyAmount).toBe(expected)
+    })
+
+    test.each([
+      ['buy', 'quoteCurrencyAmount'],
+      ['quoteBuy', 'quoteCurrencyAmount'],
+      ['sell', 'baseCurrencyAmount'],
+      ['quoteSell', 'baseCurrencyAmount']
+    ].flatMap(([method, param]) => [
+      [method, param, 'usdc', 25_500_000n, '25.50'], // 6 decimals
+      [method, param, 'eth', 50_000_000_000_000_000n, '0.05000'] // 18 decimals
+    ]))('%s should send %s for %s %p as %s', async (method, param, cryptoAsset, cryptoAmount, expected) => {
+      const params = await requestedParams(method, { cryptoAsset, cryptoAmount })
+
+      expect(params[param]).toBe(expected)
+    })
+
+    test('should return quote amounts in the token base unit and fiat cents', async () => {
+      mockQuote({ baseCurrencyAmount: 25.5, quoteCurrencyAmount: 25.13, feeAmount: 0.32, extraFeeAmount: 0.05, baseCurrencyPrice: 0.9855 })
+
+      const quote = await moonpay.quoteSell({ cryptoAsset: 'usdc', fiatCurrency: 'usd', cryptoAmount: 25_500_000n })
+
+      expect(quote.cryptoAmount).toBe(25_500_000n)
+      expect(quote.fiatAmount).toBe(2513n)
+      expect(quote.fee).toBe(37n)
+    })
+  })
 })
